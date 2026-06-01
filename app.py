@@ -2,7 +2,9 @@ import sqlite3
 import os
 import sys
 import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+import hashlib
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 
 # 处理PyInstaller打包后的路径
 if getattr(sys, 'frozen', False):
@@ -17,6 +19,7 @@ else:
 app = Flask(__name__,
             template_folder=os.path.join(RESOURCE_DIR, 'templates'))
 app.secret_key = 'suorong_secret_key_2026'
+app.permanent_session_lifetime = datetime.timedelta(days=30)
 
 DATABASE = os.path.join(BASE_DIR, 'suorong.db')
 
@@ -49,8 +52,48 @@ def init_db():
     conn.execute('''
         CREATE INDEX IF NOT EXISTS idx_date ON records(date)
     ''')
+    # 设置表（存放密码等配置）
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )
+    ''')
+    # 初始化默认密码 admin
+    cur = conn.execute("SELECT value FROM settings WHERE key='password'")
+    if not cur.fetchone():
+        conn.execute("INSERT INTO settings (key, value) VALUES ('password', ?)",
+                     (hashlib.sha256('admin'.encode()).hexdigest(),))
     conn.commit()
     conn.close()
+
+def check_password(password):
+    """验证密码"""
+    conn = get_db()
+    cur = conn.execute("SELECT value FROM settings WHERE key='password'")
+    row = cur.fetchone()
+    conn.close()
+    if row:
+        stored = row['value']
+        return stored == hashlib.sha256(password.encode()).hexdigest()
+    return False
+
+def update_password(new_password):
+    """更新密码"""
+    conn = get_db()
+    conn.execute("UPDATE settings SET value=? WHERE key='password'",
+                 (hashlib.sha256(new_password.encode()).hexdigest(),))
+    conn.commit()
+    conn.close()
+
+def login_required(f):
+    """登录验证装饰器"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 def row_to_dict(row):
     """Convert sqlite3.Row to dict"""
@@ -69,7 +112,48 @@ def excel_date_to_str(serial):
 
 init_db()
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        if check_password(password):
+            session['logged_in'] = True
+            session.permanent = True
+            flash('登录成功！', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('密码错误，请重试', 'error')
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    flash('已退出登录', 'success')
+    return redirect(url_for('login'))
+
+@app.route('/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        old_pw = request.form.get('old_password', '')
+        new_pw = request.form.get('new_password', '')
+        confirm_pw = request.form.get('confirm_password', '')
+
+        if not check_password(old_pw):
+            flash('原密码错误', 'error')
+        elif len(new_pw) < 4:
+            flash('新密码至少4位', 'error')
+        elif new_pw != confirm_pw:
+            flash('两次输入的新密码不一致', 'error')
+        else:
+            update_password(new_pw)
+            flash('密码修改成功！', 'success')
+            return redirect(url_for('index'))
+
+    return render_template('change_password.html')
+
 @app.route('/')
+@login_required
 def index():
     conn = get_db()
 
@@ -129,6 +213,7 @@ def index():
                          top_transporters=top_transporters)
 
 @app.route('/records')
+@login_required
 def records():
     conn = get_db()
     page = request.args.get('page', 1, type=int)
@@ -206,6 +291,7 @@ def records():
                          product_filter=product_filter)
 
 @app.route('/add', methods=['GET', 'POST'])
+@login_required
 def add():
     conn = get_db()
 
@@ -240,6 +326,7 @@ def add():
     return render_template('add.html', customers=customers_list, transporters=transporters_list, today=today_str)
 
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
 def edit(id):
     conn = get_db()
     record = conn.execute('SELECT * FROM records WHERE id = ?', (id,)).fetchone()
@@ -271,6 +358,7 @@ def edit(id):
     return render_template('edit.html', record=record)
 
 @app.route('/delete/<int:id>', methods=['POST'])
+@login_required
 def delete(id):
     conn = get_db()
     conn.execute('DELETE FROM records WHERE id = ?', (id,))
@@ -280,6 +368,7 @@ def delete(id):
     return redirect(url_for('records'))
 
 @app.route('/import_data', methods=['GET', 'POST'])
+@login_required
 def import_data():
     if request.method == 'POST':
         import warnings
@@ -353,6 +442,7 @@ def import_data():
     return render_template('import.html')
 
 @app.route('/customers')
+@login_required
 def customers():
     conn = get_db()
 
@@ -400,6 +490,7 @@ def customers():
                          search=search)
 
 @app.route('/customer_detail/<name>')
+@login_required
 def customer_detail(name):
     conn = get_db()
     records_data = conn.execute('''
@@ -422,6 +513,7 @@ def customer_detail(name):
     return render_template('customer_detail.html', customer=name, records=records_data, summary=summary)
 
 @app.route('/export')
+@login_required
 def export():
     import csv
     import io
