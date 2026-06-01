@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap">
+    <div>
+        <h4 class="mb-1"><i class="bi bi-person"></i> {{ customer }}</h4>
+        <p class="text-muted mb-0">客户详情 - 共 {{ summary.count }} 条记录</p>
+    </div>
+    <div>
+        <a href="{{ url_for('customers') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> 返回客户列表
+        </a>
+    </div>
+</div>
+
+<!-- 客户汇总 -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body py-3">
+                <small class="text-muted">总数量</small>
+                <h5 class="mb-0 fw-bold">{{ summary.total_quantity | format_number }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body py-3">
+                <small class="text-muted">应收总额</small>
+                <h5 class="mb-0 fw-bold text-primary">{{ summary.total_receivable | format_number }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body py-3">
+                <small class="text-muted">已收总额</small>
+                <h5 class="mb-0 fw-bold text-success">{{ summary.total_received | format_number }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body py-3">
+                <small class="text-muted">未付总额</small>
+                <h5 class="mb-0 fw-bold {% if summary.total_unpaid > 0 %}text-danger{% endif %}">
+                    {{ summary.total_unpaid | format_number }}
+                </h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 记录列表 -->
+<div class="table-container">
+    <table class="table table-hover table-sm mb-0">
+        <thead>
+            <tr>
+                <th>日期</th>
+                <th>份量/品名</th>
+                <th class="text-end">数量</th>
+                <th class="text-end">单价</th>
+                <th class="text-end">应收款</th>
+                <th class="text-end">已收款</th>
+                <th class="text-end">损益</th>
+                <th class="text-end">未付</th>
+                <th>运输人</th>
+                <th style="width:80px;">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in records %}
+            <tr>
+                <td class="text-nowrap">{{ r.date }}</td>
+                <td>{{ r.product }}</td>
+                <td class="text-end">{{ r.quantity | format_number }}</td>
+                <td class="text-end">{{ r.unit_price | format_number }}</td>
+                <td class="text-end">{{ r.receivable | format_number }}</td>
+                <td class="text-end">{{ r.received | format_number }}</td>
+                <td class="text-end {% if r.profit_loss > 0 %}text-danger{% elif r.profit_loss < 0 %}text-success{% endif %}">
+                    {{ r.profit_loss | format_number }}
+                </td>
+                <td class="text-end fw-bold {% if r.unpaid > 0 %}text-danger{% endif %}">
+                    {{ r.unpaid | format_number }}
+                </td>
+                <td>{{ r.transporter }}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{{ url_for('edit', id=r.id) }}" class="btn btn-outline-primary btn-action">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <button type="button" class="btn btn-outline-danger btn-action"
+                                onclick="confirmDelete({{ r.id }})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<form id="deleteForm" method="POST" style="display:none;"></form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete(id) {
+    if (confirm('确定要删除这条记录吗？此操作不可恢复。')) {
+        var form = document.getElementById('deleteForm');
+        form.action = '/delete/' + id;
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

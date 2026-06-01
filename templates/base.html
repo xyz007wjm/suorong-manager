@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>缩绒客户管理系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-size: 14px;
+            background-color: #f5f6fa;
+        }
+        .sidebar {
+            background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,.7);
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin: 2px 8px;
+            transition: all .2s;
+        }
+        .sidebar .nav-link:hover {
+            color: #fff;
+            background: rgba(255,255,255,.1);
+        }
+        .sidebar .nav-link.active {
+            color: #fff;
+            background: rgba(255,255,255,.15);
+        }
+        .sidebar .nav-link i {
+            margin-right: 8px;
+            width: 20px;
+            text-align: center;
+        }
+        .sidebar .brand {
+            padding: 20px 16px;
+            border-bottom: 1px solid rgba(255,255,255,.1);
+            margin-bottom: 10px;
+        }
+        .sidebar .brand h5 {
+            margin: 0;
+            font-weight: 600;
+        }
+        .sidebar .brand small {
+            color: rgba(255,255,255,.5);
+        }
+        .main-content {
+            padding: 24px;
+        }
+        .stat-card {
+            border: none;
+            border-radius: 12px;
+            transition: transform .2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+        .stat-card .card-body {
+            padding: 20px;
+        }
+        .stat-card .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .table td {
+            vertical-align: middle;
+        }
+        .page-header {
+            margin-bottom: 20px;
+        }
+        .btn-action {
+            padding: 2px 8px;
+            font-size: 12px;
+        }
+        .badge-unpaid {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+        .badge-paid {
+            background-color: #dcfce7;
+            color: #16a34a;
+        }
+        .filter-card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+        }
+        .filter-card .form-label {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .filter-card .form-control,
+        .filter-card .form-select {
+            font-size: 13px;
+        }
+        .flash-msg {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+        }
+        .pagination {
+            justify-content: center;
+        }
+        .table-container {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            padding: 16px;
+            overflow-x: auto;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                min-height: auto;
+            }
+            .main-content {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-2 sidebar p-0 d-none d-md-block">
+                <div class="brand">
+                    <h5><i class="bi bi-grid-3x3-gap-fill"></i> 缩绒管理</h5>
+                    <small>客户管理系统</small>
+                </div>
+                <nav class="nav flex-column">
+                    <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{{ url_for('index') }}">
+                        <i class="bi bi-speedometer2"></i> 工作台
+                    </a>
+                    <a class="nav-link {% if request.path.startswith('/records') %}active{% endif %}" href="{{ url_for('records') }}">
+                        <i class="bi bi-table"></i> 记录管理
+                    </a>
+                    <a class="nav-link {% if request.path.startswith('/customers') %}active{% endif %}" href="{{ url_for('customers') }}">
+                        <i class="bi bi-people"></i> 客户管理
+                    </a>
+                    <a class="nav-link {% if request.path.startswith('/add') %}active{% endif %}" href="{{ url_for('add') }}">
+                        <i class="bi bi-plus-circle"></i> 新增记录
+                    </a>
+                    <a class="nav-link {% if request.path.startswith('/import') %}active{% endif %}" href="{{ url_for('import_data') }}">
+                        <i class="bi bi-upload"></i> 导入数据
+                    </a>
+                    <a class="nav-link" href="{{ url_for('export') }}">
+                        <i class="bi bi-download"></i> 导出CSV
+                    </a>
+                </nav>
+            </div>
+
+            <!-- 移动端导航 -->
+            <nav class="col-12 d-md-none bg-dark p-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold"><i class="bi bi-grid-3x3-gap-fill"></i> 缩绒管理</span>
+                    <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="collapse" data-bs-target="#mobileNav">
+                        <i class="bi bi-list"></i>
+                    </button>
+                </div>
+                <div class="collapse mt-2" id="mobileNav">
+                    <div class="d-flex flex-wrap gap-1">
+                        <a class="btn btn-sm btn-outline-light {% if request.path == '/' %}active{% endif %}" href="{{ url_for('index') }}">工作台</a>
+                        <a class="btn btn-sm btn-outline-light {% if request.path.startswith('/records') %}active{% endif %}" href="{{ url_for('records') }}">记录管理</a>
+                        <a class="btn btn-sm btn-outline-light {% if request.path.startswith('/customers') %}active{% endif %}" href="{{ url_for('customers') }}">客户管理</a>
+                        <a class="btn btn-sm btn-outline-light {% if request.path.startswith('/add') %}active{% endif %}" href="{{ url_for('add') }}">新增</a>
+                        <a class="btn btn-sm btn-outline-light {% if request.path.startswith('/import') %}active{% endif %}" href="{{ url_for('import_data') }}">导入</a>
+                        <a class="btn btn-sm btn-outline-light" href="{{ url_for('export') }}">导出</a>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- 主内容区域 -->
+            <main class="col-md-10 main-content">
+                <!-- Flash消息 -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flash-msg">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show shadow" role="alert">
+                                    <i class="bi bi-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' }}"></i>
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+
+                <!-- 版权信息 -->
+                <div class="text-center text-muted py-3 mt-3 border-top" style="font-size:13px;">
+                    <a href="https://wangjinming.com" target="_blank" class="text-decoration-none text-muted">
+                        Jackwang
+                    </a>
+                    &nbsp;|&nbsp; 缩绒客服管理系统 v1.0
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 自动隐藏flash消息
+        setTimeout(function() {
+            document.querySelectorAll('.flash-msg .alert').forEach(function(el) {
+                var bsAlert = new bootstrap.Alert(el);
+                bsAlert.close();
+            });
+        }, 4000);
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

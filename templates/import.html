@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+    <h4 class="mb-1"><i class="bi bi-upload"></i> 导入数据</h4>
+    <p class="text-muted mb-0">从Excel文件导入缩绒日报数据</p>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h5 class="mb-3"><i class="bi bi-file-earmark-excel text-success"></i> 导入Excel文件</h5>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Excel文件路径</label>
+                        <input type="text" name="file_path" class="form-control"
+                               value="/Users/mac/Desktop/缩绒客户管理系统/副本5月缩绒.xls"
+                               placeholder="输入Excel文件的完整路径">
+                        <div class="form-text">支持 .xls 和 .xlsx 格式</div>
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-cloud-upload"></i> 开始导入
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h5 class="mb-3"><i class="bi bi-info-circle text-primary"></i> 导入说明</h5>
+                <ul class="mb-0" style="line-height:2;">
+                    <li>支持从 <strong>缩绒日报表</strong> Excel文件中导入数据</li>
+                    <li>表格格式要求：日期、客户名称、份量/品名、数量、单价、应收款、已收款、损益金额、未付金额、三轮车</li>
+                    <li>系统会自动跳过标题行和合计行</li>
+                    <li>重复导入不会产生重复记录（建议先清空再导入）</li>
+                    <li>默认导入路径指向桌面上的 <code>副本5月缩绒.xls</code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

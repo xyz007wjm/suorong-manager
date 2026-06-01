@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap">
+    <div>
+        <h4 class="mb-1"><i class="bi bi-table"></i> 记录管理</h4>
+        <p class="text-muted mb-0">共 {{ total }} 条记录</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('add') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> 新增
+        </a>
+        <a href="{{ url_for('export') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download"></i> 导出
+        </a>
+    </div>
+</div>
+
+<!-- 筛选条件 -->
+<form method="GET" class="filter-card">
+    <div class="row g-2 align-items-end">
+        <div class="col-6 col-md-2">
+            <label class="form-label">客户名称</label>
+            <input type="text" name="customer" class="form-control form-control-sm" value="{{ customer_filter }}" placeholder="输入客户名">
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label">份量/品名</label>
+            <input type="text" name="product" class="form-control form-control-sm" value="{{ product_filter }}" placeholder="输入品名">
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label">运输人</label>
+            <input type="text" name="transporter" class="form-control form-control-sm" value="{{ transporter_filter }}" placeholder="输入运输人">
+        </div>
+        <div class="col-3 col-md-2">
+            <label class="form-label">日期从</label>
+            <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+        </div>
+        <div class="col-3 col-md-2">
+            <label class="form-label">日期到</label>
+            <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+        </div>
+        <div class="col-6 col-md-2 d-flex gap-1">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                <i class="bi bi-search"></i> 搜索
+            </button>
+            <a href="{{ url_for('records') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-lg"></i>
+            </a>
+        </div>
+    </div>
+</form>
+
+<!-- 筛选后汇总 -->
+<div class="row g-2 mb-3">
+    <div class="col-6 col-md">
+        <small class="text-muted">应收合计:</small>
+        <span class="fw-bold text-primary">{{ summary.total_receivable | format_number }}</span>
+    </div>
+    <div class="col-6 col-md">
+        <small class="text-muted">已收合计:</small>
+        <span class="fw-bold text-success">{{ summary.total_received | format_number }}</span>
+    </div>
+    <div class="col-6 col-md">
+        <small class="text-muted">未付合计:</small>
+        <span class="fw-bold text-danger">{{ summary.total_unpaid | format_number }}</span>
+    </div>
+    <div class="col-6 col-md">
+        <small class="text-muted">数量合计:</small>
+        <span class="fw-bold">{{ summary.total_quantity | format_number }}</span>
+    </div>
+</div>
+
+<!-- 数据表格 -->
+<div class="table-container">
+    <table class="table table-hover table-sm mb-0">
+        <thead>
+            <tr>
+                <th>日期</th>
+                <th>客户名称</th>
+                <th>份量/品名</th>
+                <th class="text-end">数量</th>
+                <th class="text-end">单价</th>
+                <th class="text-end">应收款</th>
+                <th class="text-end">已收款</th>
+                <th class="text-end">损益</th>
+                <th class="text-end">未付</th>
+                <th>运输人</th>
+                <th style="width:80px;">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in records %}
+            <tr>
+                <td class="text-nowrap">{{ r.date }}</td>
+                <td>
+                    <a href="{{ url_for('customer_detail', name=r.customer) }}" class="text-decoration-none fw-medium">
+                        {{ r.customer }}
+                    </a>
+                </td>
+                <td>{{ r.product }}</td>
+                <td class="text-end">{{ r.quantity | format_number }}</td>
+                <td class="text-end">{{ r.unit_price | format_number }}</td>
+                <td class="text-end">{{ r.receivable | format_number }}</td>
+                <td class="text-end">{{ r.received | format_number }}</td>
+                <td class="text-end {% if r.profit_loss > 0 %}text-danger{% elif r.profit_loss < 0 %}text-success{% endif %}">
+                    {{ r.profit_loss | format_number }}
+                </td>
+                <td class="text-end fw-bold {% if r.unpaid > 0 %}text-danger{% endif %}">
+                    {{ r.unpaid | format_number }}
+                </td>
+                <td>{{ r.transporter }}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{{ url_for('edit', id=r.id) }}" class="btn btn-outline-primary btn-action" title="编辑">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <button type="button" class="btn btn-outline-danger btn-action" title="删除"
+                                onclick="confirmDelete({{ r.id }})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="11" class="text-center text-muted py-4">
+                    <i class="bi bi-inbox" style="font-size:24px;"></i><br>
+                    暂无数据，请先 <a href="{{ url_for('import_data') }}">导入数据</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- 分页 -->
+{% if total_pages > 1 %}
+<nav class="mt-3">
+    <ul class="pagination pagination-sm">
+        <li class="page-item {{ 'disabled' if page <= 1 }}">
+            <a class="page-link" href="{{ url_for('records', page=page-1, customer=customer_filter, transporter=transporter_filter, date_from=date_from, date_to=date_to, product=product_filter) }}">上一页</a>
+        </li>
+        {% for p in range(1, total_pages + 1) %}
+            {% if p >= page - 3 and p <= page + 3 %}
+            <li class="page-item {{ 'active' if p == page }}">
+                <a class="page-link" href="{{ url_for('records', page=p, customer=customer_filter, transporter=transporter_filter, date_from=date_from, date_to=date_to, product=product_filter) }}">{{ p }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if page >= total_pages }}">
+            <a class="page-link" href="{{ url_for('records', page=page+1, customer=customer_filter, transporter=transporter_filter, date_from=date_from, date_to=date_to, product=product_filter) }}">下一页</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+
+<!-- 删除确认 -->
+<form id="deleteForm" method="POST" style="display:none;">
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete(id) {
+    if (confirm('确定要删除这条记录吗？此操作不可恢复。')) {
+        var form = document.getElementById('deleteForm');
+        form.action = '/delete/' + id;
+        form.submit();
+    }
+}
+</script>
+{% endblock %}
