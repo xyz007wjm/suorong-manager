@@ -3,7 +3,7 @@ name: 编译Windows EXE
 on:
   push:
     branches: [ "main", "master" ]
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,22 +19,11 @@ jobs:
           python-version: '3.10'
 
       - name: 安装依赖
-        run: |
-          pip install flask xlrd pyinstaller
+        run: pip install flask xlrd pyinstaller
 
       - name: 打包EXE
-        run: |
-          pyinstaller --clean --onefile --name "缩绒客户管理系统" ^
-            --add-data "templates;templates" ^
-            --hidden-import flask ^
-            --hidden-import xlrd ^
-            --hidden-import sqlite3 ^
-            --hidden-import datetime ^
-            --hidden-import csv ^
-            --hidden-import io ^
-            --hidden-import webbrowser ^
-            --hidden-import threading ^
-            run.py
+        shell: cmd
+        run: pyinstaller --clean --onefile --name "缩绒客户管理系统" --add-data "templates;templates" --hidden-import flask --hidden-import xlrd --hidden-import sqlite3 --hidden-import datetime --hidden-import csv --hidden-import io --hidden-import webbrowser --hidden-import threading run.py
 
       - name: 上传EXE文件
         uses: actions/upload-artifact@v4
